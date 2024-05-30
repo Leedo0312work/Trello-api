@@ -1,29 +1,49 @@
+/* eslint-disable no-console */
 import express from 'express'
-import { mapOrder } from '~/utils/sorts.js'
+import exitHook from 'async-exit-hook'
+import { CONNECT_DB, CLOSE_DB } from '~/config/mongodb'
+import { env } from '~/config/environment'
 
-const app = express()
+const START_SERVER = () => {
+  const app = express()
 
-const hostname = 'localhost'
-const port = 8017
+  app.get('/', async (req, res) => {
+    //console.log(await GET_DB().listCollections().toArray())
 
-app.get('/', (req, res) => {
-  // Test Absolute import mapOrder
-  console.log(
-    mapOrder(
-      [
-        { id: 'id-1', name: 'One' },
-        { id: 'id-2', name: 'Two' },
-        { id: 'id-3', name: 'Three' },
-        { id: 'id-4', name: 'Four' },
-        { id: 'id-5', name: 'Five' },
-      ],
-      ['id-5', 'id-4', 'id-2', 'id-3', 'id-1'],
-      'id'
+    res.end('<h1>Hello World!</h1><hr>')
+  })
+
+  app.listen(env.APP_PORT, env.APP_HOST, () => {
+    console.log(
+      `Hi ${env.AUTHOR}, Server is running at Host: ${env.APP_HOST} and Port: ${env.APP_PORT}`
     )
-  )
-  res.end('<h1>Hello World!</h1><hr>')
-})
+  })
 
-app.listen(port, hostname, () => {
-  console.log(`Hello, Server am running at http://${hostname}:${port}/`)
-})
+  exitHook(() => {
+    console.log('Server is shutting down...')
+    CLOSE_DB()
+    console.log('Disconnected from MongoDB Cloud Atlas')
+  })
+}
+
+//IIFE(Immediately Invoked Function Expression) : Immediately-invoked anonymous async funct
+;(async () => {
+  try {
+    await CONNECT_DB()
+    console.log('Connected to MondoDB Cloud Atlas!')
+    START_SERVER()
+  } catch (error) {
+    console.log(error)
+    process.exit(0)
+  }
+})()
+
+// CONNECT_DB()
+//   .then(() => {
+//     console.log('Connected to MondoDB Cloud Atlas!')
+//   })
+//   .then(() => START_SERVER())
+//   .catch((error) => {
+//     console.log(error)
+//     process.exit(0)
+//   })
