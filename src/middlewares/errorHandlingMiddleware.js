@@ -1,6 +1,6 @@
 /* eslint-disable no-unused-vars */
 import { StatusCodes } from 'http-status-codes'
-// import { env } from '~/config/environment'
+import { env } from '~/config/environment'
 
 // Centralized Error Handleing Middleware in Back-end NodeJS App
 export const errorHandlingMiddleware = (err, req, res, next) => {
@@ -15,8 +15,7 @@ export const errorHandlingMiddleware = (err, req, res, next) => {
   }
   // console.error(responseError)
 
-  // Chỉ khi môi trường là DEV thì mới trả về Stack Trace để debug dễ dàng hơn.
-  // if (env.BUILD_MODE !== 'dev') delete responseError.stack
+  if (env.BUILD_MODE !== 'dev') delete responseError.stack
 
   // Return responseError to Front-end
   res.status(responseError.statusCode).json(responseError)
