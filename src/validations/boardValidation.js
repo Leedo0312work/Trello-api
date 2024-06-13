@@ -2,6 +2,7 @@
 import Joi from 'joi'
 import { StatusCodes } from 'http-status-codes'
 import ApiError from '~/utils/ApiError'
+import { boardType } from '~/utils/constants'
 
 const createNew = async (req, res, next) => {
   // Create object validation
@@ -29,6 +30,7 @@ const createNew = async (req, res, next) => {
         'string.trim':
           'Description must not have leading or trailing whitesapce',
       }),
+    type: Joi.string().valid(boardType.PUBLIC, boardType.PRIVATE).required(),
   })
 
   //Execute
