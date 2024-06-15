@@ -1,10 +1,10 @@
 import Joi from 'joi'
-import { ObjectId } from 'mongodb'
+import { ObjectId, ReturnDocument } from 'mongodb'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { boardType } from '~/utils/constants'
-import { columnModel } from './columnModal'
-import { cardModel } from './cardModal'
+import { columnModel } from './columnModel'
+import { cardModel } from './cardModel'
 import { boardValidation } from '~/validations/boardValidation'
 
 const BOARD_COLLECTION_NAME = 'boards'
@@ -22,16 +22,16 @@ const BOARD_COLLECTION_SCHEMA = Joi.object({
   createdAt: Joi.date().timestamp('javascript').default(Date.now),
   updatedAt: Joi.date().timestamp('javascript').default(null),
 
-  _destroy: Joi.boolean().default(false),
+  _destroy: Joi.boolean().default(false)
 })
 
-const validateBeforeCreate = async (data) => {
+const validateBeforeCreate = async data => {
   return await BOARD_COLLECTION_SCHEMA.validateAsync(data, {
-    abortEarly: false,
+    abortEarly: false
   })
 }
 
-const createNew = async (data) => {
+const createNew = async data => {
   try {
     const validData = await validateBeforeCreate(data)
 
@@ -45,12 +45,12 @@ const createNew = async (data) => {
   }
 }
 
-const findOneById = async (id) => {
+const findOneById = async id => {
   try {
     const result = await GET_DB()
       .collection(BOARD_COLLECTION_NAME)
       .findOne({
-        _id: new ObjectId(id),
+        _id: new ObjectId(id)
       })
 
     return result
@@ -60,7 +60,7 @@ const findOneById = async (id) => {
 }
 
 //Query tổng hợp(aggregate) (important)
-const getDetails = async (id) => {
+const getDetails = async id => {
   try {
     const result = await GET_DB()
       .collection(BOARD_COLLECTION_NAME)
@@ -68,38 +68,56 @@ const getDetails = async (id) => {
         {
           $match: {
             _id: new ObjectId(id),
-            _destroy: false,
-          },
+            _destroy: false
+          }
         },
         {
           $lookup: {
             from: columnModel.COLUMN_COLLECTION_NAME,
             localField: '_id',
             foreignField: 'boardId',
-            as: 'columns',
-          },
+            as: 'columns'
+          }
         },
         {
           $lookup: {
             from: cardModel.CARD_COLLECTION_NAME,
             localField: '_id',
             foreignField: 'boardId',
-            as: 'cards',
-          },
-        },
+            as: 'cards'
+          }
+        }
       ])
       .toArray()
 
-    return result[0] || {}
+    return result[0] || null
   } catch (error) {
     throw new Error(error)
   }
 }
 
-export const boardModal = {
+//Cập nhật giá trị columnId vào mảng columnOrderIds
+const pushColumnOrderIds = async column => {
+  try {
+    const result = await GET_DB()
+      .collection(BOARD_COLLECTION_NAME)
+      .findOneAndUpdate(
+        { _id: new ObjectId(column.boardId) },
+        { $push: { columnOrderIds: new ObjectId(column._id) } },
+        { returnDocument: 'after' }
+      )
+
+    return result.value || null
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+export const boardModel = {
   BOARD_COLLECTION_NAME,
   BOARD_COLLECTION_SCHEMA,
   createNew,
   findOneById,
   getDetails,
+  pushColumnOrderIds
 }

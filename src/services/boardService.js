@@ -1,22 +1,22 @@
 /* eslint-disable no-useless-catch */
 import { slugify } from '~/utils/formatters'
-import { boardModal } from '~/models/boardModel'
+import { boardModel } from '~/models/boardModel'
 import ApiError from '~/utils/ApiError'
 import { StatusCodes } from 'http-status-codes'
 import { cloneDeep } from 'lodash'
 
-const createNew = async (reqBody) => {
+const createNew = async reqBody => {
   try {
     const newBoard = {
       ...reqBody,
-      slug: slugify(reqBody.title),
+      slug: slugify(reqBody.title)
     }
 
     //Gọi tới tầng Modal để xử lý lưu bản ghi newBoard vào trong database
-    const createdBoard = await boardModal.createNew(newBoard)
+    const createdBoard = await boardModel.createNew(newBoard)
 
     //Lấy bản ghi board sau khi gọi
-    const getNewBoard = await boardModal.findOneById(createdBoard.insertedId)
+    const getNewBoard = await boardModel.findOneById(createdBoard.insertedId)
 
     return getNewBoard
   } catch (error) {
@@ -24,9 +24,9 @@ const createNew = async (reqBody) => {
   }
 }
 
-const getDetails = async (boardId) => {
+const getDetails = async boardId => {
   try {
-    const board = await boardModal.getDetails(boardId)
+    const board = await boardModel.getDetails(boardId)
     if (!board) {
       throw new ApiError(StatusCodes.NOT_FOUND, 'Board not found!')
     }
@@ -34,9 +34,9 @@ const getDetails = async (boardId) => {
     //Xử lý cấp độ object của đối tượng: columns(parent) -> cards(child)
     const resBoard = cloneDeep(board)
     //Đưa card về đúng column
-    resBoard.columns.forEach((column) => {
+    resBoard.columns.forEach(column => {
       //Mongo support equals so sánh ObjectId
-      column.cards = resBoard.cards.filter((card) =>
+      column.cards = resBoard.cards.filter(card =>
         card.columnId.equals(column._id)
       )
       // column.cards = resBoard.cards.filter(
@@ -55,5 +55,5 @@ const getDetails = async (boardId) => {
 
 export const boardService = {
   createNew,
-  getDetails,
+  getDetails
 }
