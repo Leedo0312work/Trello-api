@@ -1,11 +1,10 @@
 import Joi from 'joi'
-import { ObjectId, ReturnDocument } from 'mongodb'
+import { ObjectId } from 'mongodb'
 import { OBJECT_ID_RULE, OBJECT_ID_RULE_MESSAGE } from '~/utils/validators'
 import { GET_DB } from '~/config/mongodb'
 import { boardType } from '~/utils/constants'
 import { columnModel } from './columnModel'
 import { cardModel } from './cardModel'
-import { boardValidation } from '~/validations/boardValidation'
 
 const BOARD_COLLECTION_NAME = 'boards'
 const BOARD_COLLECTION_SCHEMA = Joi.object({
@@ -96,7 +95,7 @@ const getDetails = async id => {
   }
 }
 
-//Cập nhật giá trị columnId vào mảng columnOrderIds
+//Cập nhật giá trị columnId vào cuối mảng columnOrderIds
 const pushColumnOrderIds = async column => {
   try {
     const result = await GET_DB()
@@ -104,10 +103,42 @@ const pushColumnOrderIds = async column => {
       .findOneAndUpdate(
         { _id: new ObjectId(column.boardId) },
         { $push: { columnOrderIds: new ObjectId(column._id) } },
+        { returnDocument: 'after' } //Trả về kết quả mới sau khi cập nhật
+      )
+
+    return result
+  } catch (error) {
+    throw new Error(error)
+  }
+}
+
+//Những field không cho phép cập nhật
+const INVALID_UPDATE_FIELDS = ['_id', 'createdAt']
+
+const update = async (boardId, updateData) => {
+  try {
+    Object.keys(updateData).forEach(fieldName => {
+      if (INVALID_UPDATE_FIELDS.includes(fieldName)) {
+        delete updateData[fieldName]
+      }
+    })
+
+    //Biến đổi với data có type là ObjectId
+    if (updateData.columnOrderIds) {
+      updateData.columnOrderIds = updateData.columnOrderIds.map(
+        _id => new ObjectId(_id)
+      )
+    }
+
+    const result = await GET_DB()
+      .collection(BOARD_COLLECTION_NAME)
+      .findOneAndUpdate(
+        { _id: new ObjectId(boardId) },
+        { $set: updateData },
         { returnDocument: 'after' }
       )
 
-    return result.value || null
+    return result
   } catch (error) {
     throw new Error(error)
   }
@@ -119,5 +150,6 @@ export const boardModel = {
   createNew,
   findOneById,
   getDetails,
-  pushColumnOrderIds
+  pushColumnOrderIds,
+  update
 }
